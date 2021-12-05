@@ -26,7 +26,7 @@ class Detect_Sign:
     
     def __init__(self):
         '''
-        Initialise the ROS node fro detecting signs and subscriber for getting images from RasPi camera
+        Initialise the ROS node for detecting signs and subscriber for getting images from RasPi camera
         
         Args: None
         Returns: None
@@ -39,7 +39,13 @@ class Detect_Sign:
 
     def get_latest_img_callback(self, img_data):
         '''
-        Function which stores the latest image input from RasPi camera 
+        Function which stores the latest image input from RasPi camera which will be used for detecting the sign 
+
+        Args: 
+            img_data: buffer image from standard ROS compressed image message
+
+        Returns:
+            None 
         '''
 
         single_img_batch = np.ndarray(shape = (1,224,224,3), dtype = np.float32)
@@ -60,11 +66,10 @@ class Detect_Sign:
 
     def detect_sign(self):
         '''
-        Call back function for the image subscriber which passes the input image through the trained CNN to generate a prediction for the detected sign
+        Function which detects the sign in the latest image from the RasPi camera
         
         Args: 
-            img_data: buffer image from standard ROS compressed image message
-        
+            None
         Returns:
             None
         '''
