@@ -27,7 +27,7 @@ class move_robot:
         self.max_scan_distance = 0.7
         self.scan_array = np.empty((1, 360))
         self.fov = 30
-        self.desired_distance = 0.1
+        self.desired_distance = 0.2
         self.desired_distance_error = 0.01
         self.odom_linear = 0.0
         self.odom_angular = 0.0
@@ -49,11 +49,16 @@ class move_robot:
         if direction == Sign.RIGHT:
             yaw_target = yaw - np.pi / 2
 
-        if direction == Sign.LEFT:
+        elif direction == Sign.LEFT:
             yaw_target = yaw + np.pi / 2
 
-        if direction == Sign.U_TURN:
+        elif direction == Sign.U_TURN:
             yaw_target = yaw + np.pi
+
+        else:
+            print(direction.value)
+            raise Exception("invalid direction value")
+
 
         while True:    
 
@@ -105,7 +110,6 @@ class move_robot:
 
         '''
         
-        
         while True:
             command_vel = Twist()
 
@@ -113,10 +117,11 @@ class move_robot:
             _, distance_e = self.is_facing_wall(Quadrant.E)
             _, distance_w = self.is_facing_wall(Quadrant.W)
 
+            print(distance_n - self.desired_distance)
             # linear controller
             if distance_n == -1:
                 distance_n = self.max_scan_distance
-
+            
             p1_param = 1.5
             p2_param = 0.7
             command_vel.linear.x = np.amin([p1_param*(p2_param*(distance_n - self.desired_distance) - self.odom_linear) + self.odom_linear, self.max_velocity])
@@ -159,6 +164,7 @@ class move_robot:
             raise TypeError('quadrant must be an instance of Quadrant Enum')
         
         _, quad_array = self.quadrant_array(quadrant)
+        # print(quad_array)
         if -1 in quad_array:
             return False, -1
         else:
@@ -169,6 +175,7 @@ class move_robot:
                 return False, scan_distance
 
     def laser_subscriber(self, laser_scan_object):
+        
         range_min = laser_scan_object.range_min
         range_max = min(self.max_scan_distance, laser_scan_object.range_max)
         # convert to numpy array
@@ -185,7 +192,7 @@ class move_robot:
 
         array_length = np.size(self.scan_array)
 
-        indices = range(int(quadrant.value*(array_length/4) - self.fov/2), 
-                        int(quadrant.value*(array_length/4) + self.fov/2))
+        indices = range(int(-quadrant.value*(array_length/4) - self.fov/2), 
+                        int(-quadrant.value*(array_length/4) + self.fov/2))
 
         return indices, self.scan_array.take(indices, mode='wrap')

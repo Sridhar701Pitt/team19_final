@@ -29,7 +29,7 @@ class Detect_Sign:
         self.cnn_model = tensorflow.keras.models.load_model('keras_model.h5', compile=False)
         self.img_size = (224,224)
         self.detected_sign = None
-        self.latest_img = None
+        self.latest_img = np.ndarray(shape = (1,224,224,3), dtype = np.float32)
 
         # rospy.init_node('detect_sign_node', anonymous=True)
         
@@ -52,13 +52,17 @@ class Detect_Sign:
         img_np_arr = np.fromstring(img_data.data, np.uint8)
         PIL_image = Image.fromarray(np.uint8(img_np_arr)).convert('RGB')
 
+        print(type(PIL_image))
+
         img_cropped = ImageOps.fit(PIL_image, self.img_size, Image.ANTIALIAS)
+
+        print("\n img cropped:", type(img_cropped))
 
         img_cropped_array = np.asarray(img_cropped)
 
         normalized_img_arr = (img_cropped_array.astype(np.float32) / 127.0) - 1
 
-        single_img_batch[0] = normalized_image_arr
+        single_img_batch[0] = normalized_img_arr
 
         self.latest_img = single_img_batch[0]
 
@@ -91,4 +95,6 @@ class Detect_Sign:
         
         else:
             self.detected_sign = Sign.GOAL
+
+        return self.detected_sign
 

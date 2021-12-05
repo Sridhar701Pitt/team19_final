@@ -19,7 +19,7 @@ if __name__ == '__main__':
             # Find the sign
             sign_command = detect_sign_object.detect_sign()
             
-            if sign_command != Sign.NO_SIGN or sign != Sign.GOAL:
+            if sign_command != Sign.NO_SIGN and sign_command != Sign.GOAL:
                 
                 # execute rotation
                 move_object.rotate_robot(sign_command)
@@ -34,10 +34,12 @@ if __name__ == '__main__':
                     move_object.rotate_robot_precise(Quadrant.S)
 
             elif sign_command == Sign.GOAL:
+                rospy.loginfo('Goal Reached')
                 print('Goal Reached')
                 break
             
             else: # Sign.NO_SIGN
+                rospy.logerr("Sign not found, recovery behaviour")
                 print("Sign not found, recovery behaviour")
                 # execute recovery behaviour
                 continue
