@@ -34,25 +34,41 @@ class move_robot:
         self.odom_orientation = Quaternion()
         self.max_velocity = 0.22
         self.angular_adjustment_error = 0.05
+        self.desired_angular_error = 0.02
 
     def rotate_robot(self, direction)
         # TODO
 
-        while True:
+        p_param = 1
+
+        orientation_list = [self.odom_orientation.x, self.odom_orientation.y, self.odom_orientation.z, self.odom_orientation.w]
+        (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
+        
+        if direction == 1:
+            yaw_target = yaw - np.pi / 2
+
+        if direction == 2:
+            yaw_target = yaw + np.pi / 2
+
+        if direction == 3:
+            yaw_target = yaw + np.pi
+
+        while True:    
 
             command_vel = Twist()
 
             orientation_list = [self.odom_orientation.x, self.odom_orientation.y, self.odom_orientation.z, self.odom_orientation.w]
-            (roll, pitch, yaw) = euler_from_quaternion (orientation_list)
+            (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
 
-            p_param = 1
+            command_vel.angular.z = p_param * ((yaw_target - yaw) + self.odom_angular) + self.odom_angular
 
-            if direction == 1:
-                yaw_target = yaw - np.pi / 2
-
-                command_vel.angular.z = p_param * 
-
-
+            if -1 * self.desired_angular_error <= (yaw_target - yaw) <= self.desired_angular_error:
+                command_vel.linear.x = 0
+                command_vel.angular.z = 0
+                self.move_publisher.publish(command_vel)
+                break
+            
+            self.move_publisher.publish(command_vel)
 
 
     def rotate_robot_precise(self, quadrant):
