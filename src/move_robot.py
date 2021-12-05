@@ -8,6 +8,8 @@ from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 import enums
 
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
+
 class move_robot:
     '''
     move robot forward
@@ -33,8 +35,25 @@ class move_robot:
         self.max_velocity = 0.22
         self.angular_adjustment_error = 0.05
 
-    def rotate_robot(self, )# TODO)
+    def rotate_robot(self, direction)
         # TODO
+
+        while True:
+
+            command_vel = Twist()
+
+            orientation_list = [self.odom_orientation.x, self.odom_orientation.y, self.odom_orientation.z, self.odom_orientation.w]
+            (roll, pitch, yaw) = euler_from_quaternion (orientation_list)
+
+            p_param = 1
+
+            if direction == 1:
+                yaw_target = yaw - np.pi / 2
+
+                command_vel.angular.z = p_param * 
+
+
+
 
     def rotate_robot_precise(self, quadrant):
         '''
