@@ -5,7 +5,6 @@ import enums
 import move_robot
 import detect_sign
 
-
 if __name__ == '__main__':
 
     # Instantiate class move_robot
@@ -22,17 +21,19 @@ if __name__ == '__main__':
                 move_object.rotate_robot(sign_command)
                 if sign_command == Sign.RIGHT:
                     move_object.rotate_robot_precise(Quadrant.W)
-                elif sign_command == Sign.U_TURN:
+                elif sign_command == Sign.LEFT:
+                    move_object.rotate_robot_precise(Quadrant.E)
+                else: #Sign.U-TURN
                     move_object.rotate_robot_precise(Quadrant.S)
 
-            elif sign == Sign.GOAL:
+            elif sign_command == Sign.GOAL:
                 print('Goal Reached')
                 break
-            else:
+            else: # Sign.NO_SIGN
+                print("Sign not found, recovery behaviour")
                 # execute recovery behaviour
-                pass
-            del
+                continue
         else:
-            move_forward_robot()
-            rotate_precise_robot()    
+            move_object.move_robot_forward()
+            move_object.rotate_robot_precise(Quadrant.N)    
             
