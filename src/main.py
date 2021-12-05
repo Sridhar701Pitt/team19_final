@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 import enums
-import move_robot
-import detect_sign
+from move_robot import *
+from detect_sign import *
 
 if __name__ == '__main__':
 

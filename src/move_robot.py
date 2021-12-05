@@ -7,7 +7,8 @@ from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 import enums
 
-from tf.transformations import euler_from_quaternion, quaternion_from_euler
+from scipy.spatial.transform import Rotation as R
+
 
 class move_robot:
     '''
@@ -41,7 +42,9 @@ class move_robot:
         p_param = 1
 
         orientation_list = [self.odom_orientation.x, self.odom_orientation.y, self.odom_orientation.z, self.odom_orientation.w]
-        (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
+        orientation_quat = R.from_quat(orientation_list)
+        orientation_euler = orientation_quat.as_euler('xyz', degrees=False)
+        yaw = orientation_euler[2]
         
         if direction == Sign.RIGHT:
             yaw_target = yaw - np.pi / 2
@@ -57,7 +60,9 @@ class move_robot:
             command_vel = Twist()
 
             orientation_list = [self.odom_orientation.x, self.odom_orientation.y, self.odom_orientation.z, self.odom_orientation.w]
-            (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
+            orientation_quat = R.from_quat(orientation_list)
+            orientation_euler = orientation_quat.as_euler('xyz', degrees=False)
+            yaw = orientation_euler[2]
 
             command_vel.angular.z = p_param * ((yaw_target - yaw) - self.odom_angular) + self.odom_angular
 

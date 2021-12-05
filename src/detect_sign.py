@@ -17,12 +17,6 @@ import enums
 
 
 class Detect_Sign:
-
-    self.cnn_model = tensorflow.keras.models.load_model('keras_model.h5', compile=False)
-    self.img_size = (224,224)
-    self.detected_sign = None
-    self.latest_img = None
-
     
     def __init__(self):
         '''
@@ -31,6 +25,11 @@ class Detect_Sign:
         Args: None
         Returns: None
         '''
+
+        self.cnn_model = tensorflow.keras.models.load_model('keras_model.h5', compile=False)
+        self.img_size = (224,224)
+        self.detected_sign = None
+        self.latest_img = None
 
         rospy.init_node('detect_sign_node', anonymous=True)
         
