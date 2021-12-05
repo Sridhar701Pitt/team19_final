@@ -19,10 +19,16 @@ def test_rotate_robot_precise():
     
     move_object.rotate_robot_precise(Quadrant.N)    # Quadrant.N for testing rotate_robot_precise just after linear motion is performed
 
+def test_rotate_robot():
+
+    # Instantiate class move_robot
+    move_object = move_robot()
+    
+    move_object.rotate_robot(Sign.U_TURN)
+
 
 if __name__ == '__main__':
 
-    '''
     # Instantiate class move_robot
     move_object = move_robot()
     
@@ -64,9 +70,9 @@ if __name__ == '__main__':
         else:
             move_object.move_robot_forward()
             move_object.rotate_robot_precise(Quadrant.N)
-    
-    '''
 
     # test_linear_motion()
 
-    test_rotate_robot_precise()
+    # test_rotate_robot_precise()
+
+    # test_rotate_robot()

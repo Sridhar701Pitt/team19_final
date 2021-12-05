@@ -34,33 +34,39 @@ class move_robot:
         self.odom_orientation = Quaternion()
         self.max_velocity = 0.22
         self.max_angular = 2.84
-        self.angular_adjustment_error = 0.05
-        self.desired_angular_error = 0.02
+        self.angular_adjustment_error = 0.0005
+        self.desired_angular_error = 0.02       # ang error threshold for the crude rotate_robot maneuver
         self.new_scan = False
+        self.new_odom = False
 
     def rotate_robot(self, direction):
         # TODO
 
-        p_param = 1
+        p_param = 1.5
+
+        while self.new_odom == False:
+            print('odom not updated')
 
         orientation_list = [self.odom_orientation.x, self.odom_orientation.y, self.odom_orientation.z, self.odom_orientation.w]
         orientation_quat = R.from_quat(orientation_list)
         orientation_euler = orientation_quat.as_euler('xyz', degrees=False)
         yaw = orientation_euler[2]
+
+        # prevents 270 degree turns
+        yaw_offset = yaw
         
         if direction == Sign.RIGHT:
-            yaw_target = yaw - np.pi / 2
+            yaw_target = - np.pi / 2
 
         elif direction == Sign.LEFT:
-            yaw_target = yaw + np.pi / 2
+            yaw_target = + np.pi / 2
 
         elif direction == Sign.U_TURN:
-            yaw_target = yaw + np.pi
+            yaw_target = + np.pi
 
         else:
             print(direction.value)
             raise Exception("invalid direction value")
-
 
         while True:    
 
@@ -69,7 +75,11 @@ class move_robot:
             orientation_list = [self.odom_orientation.x, self.odom_orientation.y, self.odom_orientation.z, self.odom_orientation.w]
             orientation_quat = R.from_quat(orientation_list)
             orientation_euler = orientation_quat.as_euler('xyz', degrees=False)
-            yaw = orientation_euler[2]
+            yaw = orientation_euler[2] - yaw_offset
+
+            #fix angle wrapping (angle must be between -pi to pi)
+            yaw = (yaw + np.pi) % (2 * np.pi) - np.pi
+            print(yaw)
 
             command_vel.angular.z = p_param * ((yaw_target - yaw) - self.odom_angular) + self.odom_angular
 
@@ -86,15 +96,22 @@ class move_robot:
         '''
         Rotates robot precisely upon to line up with walls
         '''
+
         while True:
+
             command_vel = Twist()
+
+            indices, quad_array = self.quadrant_array(quadrant)
+
+            # print("\n quad_array: ", quad_array)
+            # print("\n quad_array indices: ", indices)
 
             split_difference = self.quadrant_split(quadrant)
 
             if -1 in quad_array:
                 raise Exception("invalid element '-1' in quad array")
 
-            if split_difference < self.angular_adjustment_error:
+            if - self.angular_adjustment_error < split_difference < self.angular_adjustment_error:
                 command_vel.angular.z = 0
                 self.move_publisher.publish(command_vel)
                 break
@@ -102,7 +119,9 @@ class move_robot:
             # angular adjustment controller
             p_param = 1.5                   # should be greater than 1 and less than 2
             k = 6
-            command_vel.angular.z = p_param*(k * split_difference - self.odom_angular) + self.odom_angular
+            command_vel.angular.z = np.clip(p_param*(k * split_difference - self.odom_angular) + self.odom_angular, - self.max_angular, self.max_angular)
+
+            # print("\n split difference: " + str(split_difference) + " Angular Z: " + str(command_vel.angular.z))
 
             self.move_publisher.publish(command_vel)
 
@@ -183,6 +202,8 @@ class move_robot:
         self.odom_angular = odom_object.twist.twist.angular.z
         self.odom_orientation = odom_object.pose.pose.orientation
 
+        self.new_odom = True
+
     def is_facing_wall(self,quadrant):
         '''
         Function to find if the specified quadrant contaisn a wall and the distance to that wall 
@@ -217,6 +238,8 @@ class move_robot:
         self.scan_array = np.where(self.scan_array > range_max, -1, self.scan_array)
 
         self.scan_array = np.where(self.scan_array < range_min, -1, self.scan_array)
+
+        # print("\n received scan: ", self.scan_array)
 
         self.new_scan = True
 
