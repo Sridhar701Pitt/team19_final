@@ -26,7 +26,7 @@ class move_robot:
         self.lidar_scan = rospy.Subscriber('/scan', LaserScan, self.laser_subscriber, queue_size = 10)
         self.max_scan_distance = 0.7
         self.scan_array = np.empty((1, 360))
-        self.fov = 30
+        self.fov = 10
         self.desired_distance = 0.2
         self.desired_distance_error = 0.01
         self.odom_linear = 0.0
@@ -123,18 +123,30 @@ class move_robot:
                 distance_n = self.max_scan_distance
             
             p1_param = 1.5
-            p2_param = 0.7
+            p2_param = 0.1
             command_vel.linear.x = np.amin([p1_param*(p2_param*(distance_n - self.desired_distance) - self.odom_linear) + self.odom_linear, self.max_velocity])
+
+            l = 0.05
 
             # angular adjustment controller
             if distance_w != -1:
-                p_param = 1
-                command_vel.angular.z = p_param*((distance_w - self.desired_distance) - self.odom_angular) + self.odom_angular
+                command_vel.angular.z = (distance_w - self.desired_distance) * 1/l
             elif distance_e != -1:
-                p_param = 1
-                command_vel.angular.z = p_param*((self.desired_distance - distance_e) - self.odom_angular) + self.odom_angular
+                command_vel.angular.z = -(distance_e - self.desired_distance) * 1/l
             else:
                 command_vel.angular.z = 0
+            
+
+
+            # # angular adjustment controller
+            # if distance_w != -1:
+            #     p_param_w = 1.5
+            #     command_vel.angular.z = p_param_w*((distance_w - self.desired_distance) - self.odom_angular) + self.odom_angular
+            # elif distance_e != -1:
+            #     p_param_e = 1.5
+            #     command_vel.angular.z = p_param_e*((self.desired_distance - distance_e) - self.odom_angular) + self.odom_angular
+            # else:
+            #     command_vel.angular.z = 0
 
             # stop if in range
             if self.desired_distance - self.desired_distance_error <= distance_n <= self.desired_distance + self.desired_distance_error:

@@ -4,8 +4,18 @@ from enums import *
 from move_robot import *
 from detect_sign import *
 
+
+def test_linear_motion():
+
+    # Instantiate class move_robot
+    move_object = move_robot()
+
+    move_object.move_robot_forward()
+
+
 if __name__ == '__main__':
 
+    '''
     # Instantiate class move_robot
     move_object = move_robot()
     
@@ -47,3 +57,7 @@ if __name__ == '__main__':
         else:
             move_object.move_robot_forward()
             move_object.rotate_robot_precise(Quadrant.N)
+    
+    '''
+
+    test_linear_motion()
