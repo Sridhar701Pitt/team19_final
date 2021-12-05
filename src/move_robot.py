@@ -36,7 +36,7 @@ class move_robot:
         self.angular_adjustment_error = 0.05
         self.desired_angular_error = 0.02
 
-    def rotate_robot(self, direction)
+    def rotate_robot(self, direction):
         # TODO
 
         p_param = 1
@@ -44,13 +44,13 @@ class move_robot:
         orientation_list = [self.odom_orientation.x, self.odom_orientation.y, self.odom_orientation.z, self.odom_orientation.w]
         (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
         
-        if direction == 1:
+        if direction == Sign.RIGHT:
             yaw_target = yaw - np.pi / 2
 
-        if direction == 2:
+        if direction == Sign.LEFT:
             yaw_target = yaw + np.pi / 2
 
-        if direction == 3:
+        if direction == Sign.U_TURN:
             yaw_target = yaw + np.pi
 
         while True:    
@@ -60,7 +60,7 @@ class move_robot:
             orientation_list = [self.odom_orientation.x, self.odom_orientation.y, self.odom_orientation.z, self.odom_orientation.w]
             (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
 
-            command_vel.angular.z = p_param * ((yaw_target - yaw) + self.odom_angular) + self.odom_angular
+            command_vel.angular.z = p_param * ((yaw_target - yaw) - self.odom_angular) + self.odom_angular
 
             if -1 * self.desired_angular_error <= (yaw_target - yaw) <= self.desired_angular_error:
                 command_vel.linear.x = 0
