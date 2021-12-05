@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from ROS.catkin_ws.src.team19_final.src.enums import Quadrant
 import enums
 import move_robot
 import detect_sign
@@ -15,7 +14,7 @@ if __name__ == '__main__':
     while True:
         if move_object.is_facing_wall(Quadrant.N)[0]: 
             # Find the sign
-            sign_command = detect_sign_object.sign_detect()
+            sign_command = detect_sign_object.detect_sign()
             if sign_command != Sign.NO_SIGN or sign != Sign.GOAL:
                 # execute rotation
                 move_object.rotate_robot(sign_command)
