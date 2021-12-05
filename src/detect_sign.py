@@ -33,12 +33,13 @@ class Detect_Sign:
         '''
 
         rospy.init_node('detect_sign_node', anonymous=True)
-
-	    rospy.Subscriber("/raspicam_node/image/compressed", CompressedImage, get_latest_img_callback, queue_size = 1, buff_size=2**24)
+        
+        rospy.Subscriber("/raspicam_node/image/compressed", CompressedImage, get_latest_img_callback, queue_size = 1, buff_size=2**24)
 
 
     def get_latest_img_callback(self, img_data):
         '''
+        Function which stores the latest image input from RasPi camera 
         '''
 
         single_img_batch = np.ndarray(shape = (1,224,224,3), dtype = np.float32)
