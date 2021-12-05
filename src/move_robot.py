@@ -89,20 +89,20 @@ class move_robot:
         while True:
             command_vel = Twist()
 
-            _, quad_array = self.quadrant_array(quadrant)
-            [array_right, array_left] = np.array_split(quad_array,2)
+            split_difference = self.quadrant_split(quadrant)
 
             if -1 in quad_array:
                 raise Exception("invalid element '-1' in quad array")
 
-            if (np.average(array_right) - np.average(array_left)) < self.angular_adjustment_error:
+            if split_difference < self.angular_adjustment_error:
                 command_vel.angular.z = 0
                 self.move_publisher.publish(command_vel)
                 break
             
             # angular adjustment controller
-            p_param = 1
-            command_vel.angular.z = p_param*((np.average(array_right) - np.average(array_left)) - self.odom_angular) + self.odom_angular
+            p_param = 1.5                   # should be greater than 1 and less than 2
+            k = 6
+            command_vel.angular.z = p_param*(k * split_difference - self.odom_angular) + self.odom_angular
 
             self.move_publisher.publish(command_vel)
 
@@ -148,13 +148,13 @@ class move_robot:
                 if distance_w != -1:
                     split_difference_w = self.quadrant_split(Quadrant.W)
                     p_param_w = 1.5
-                    k = 4
+                    k = 6
                     command_vel.angular.z = np.clip(p_param_w*(k*(split_difference_w) - self.odom_angular) + self.odom_angular, - self.max_angular, self.max_angular)
                     print("split left: " + str(split_difference_w) + " Angular Z: " + str(command_vel.angular.z))
                 elif distance_e != -1:
                     split_difference_e = self.quadrant_split(Quadrant.E)
                     p_param_e = 1.5
-                    k = 4
+                    k = 6
                     command_vel.angular.z = np.clip(p_param_e*(k*(split_difference_e) - self.odom_angular) + self.odom_angular, -self.max_angular, self.max_angular)
                     print("split right: " + str(split_difference_e) + " Angular Z: " + str(command_vel.angular.z))
                 else:
