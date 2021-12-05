@@ -5,7 +5,7 @@ import numpy as np
 from geometry_msgs.msg import Twist, Quaternion
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
-import enums
+from enums import *
 
 from scipy.spatial.transform import Rotation as R
 
@@ -119,15 +119,15 @@ class move_robot:
 
             p1_param = 1.5
             p2_param = 0.7
-            command_vel.linear.x = np.min(p1_param*(p2_param*(distance_n - self.desired_distance) - self.odom_linear) + self.odom_linear, self.max_velocity)
+            command_vel.linear.x = np.amin([p1_param*(p2_param*(distance_n - self.desired_distance) - self.odom_linear) + self.odom_linear, self.max_velocity])
 
             # angular adjustment controller
             if distance_w != -1:
                 p_param = 1
-                command_vel.angluar.z = p_param*((distance_w - self.desired_distance) - self.odom_angular) + self.odom_angular
+                command_vel.angular.z = p_param*((distance_w - self.desired_distance) - self.odom_angular) + self.odom_angular
             elif distance_e != -1:
                 p_param = 1
-                command_vel.angluar.z = p_param*((self.desired_distance - distance_e) - self.odom_angular) + self.odom_angular
+                command_vel.angular.z = p_param*((self.desired_distance - distance_e) - self.odom_angular) + self.odom_angular
             else:
                 command_vel.angular.z = 0
 
@@ -174,8 +174,9 @@ class move_robot:
         # convert to numpy array
         self.scan_array = np.asarray(laser_scan_object.ranges)
         # make laser scan points outside range = -1
-        self.scan_array = np.where(self.scan_array > range_max 
-                                or self.scan_array < range_min, -1, self.scan_array)
+        self.scan_array = np.where(self.scan_array > range_max, -1, self.scan_array)
+
+        self.scan_array = np.where(self.scan_array < range_min, -1, self.scan_array)
 
     # Outputs the range values in each quadrant of specified fov
     def quadrant_array(self, quadrant):
@@ -184,7 +185,7 @@ class move_robot:
 
         array_length = np.size(self.scan_array)
 
-        indices = range(int(quadrant*(array_length/4) - self.fov/2), 
-                        int(quadrant*(array_length/4) + self.fov/2))
+        indices = range(int(quadrant.value*(array_length/4) - self.fov/2), 
+                        int(quadrant.value*(array_length/4) + self.fov/2))
 
         return indices, self.scan_array.take(indices, mode='wrap')

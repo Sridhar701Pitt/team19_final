@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import enums
+from enums import *
 from move_robot import *
 from detect_sign import *
 
@@ -10,7 +10,7 @@ if __name__ == '__main__':
     move_object = move_robot()
     
     # Instantiate class detect_sign
-    detect_sign_object = detect_sign()
+    detect_sign_object = Detect_Sign()
 
     while True:
         

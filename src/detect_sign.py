@@ -13,7 +13,7 @@ import imutils
 import tensorflow
 from PIL import Image, ImageOps
 
-import enums
+from enums import *
 
 
 class Detect_Sign:
@@ -31,9 +31,9 @@ class Detect_Sign:
         self.detected_sign = None
         self.latest_img = None
 
-        rospy.init_node('detect_sign_node', anonymous=True)
+        # rospy.init_node('detect_sign_node', anonymous=True)
         
-        rospy.Subscriber("/raspicam_node/image/compressed", CompressedImage, get_latest_img_callback, queue_size = 1, buff_size=2**24)
+        rospy.Subscriber("/raspicam_node/image/compressed", CompressedImage, self.get_latest_img_callback, queue_size = 1, buff_size=2**24)
 
 
     def get_latest_img_callback(self, img_data):
