@@ -21,6 +21,7 @@ class Detect_Sign:
     self.cnn_model = tensorflow.keras.models.load_model('keras_model.h5', compile=False)
     self.img_size = (224,224)
     self.detected_sign = None
+    self.latest_img = None
 
     
     def __init__(self):
@@ -33,18 +34,11 @@ class Detect_Sign:
 
         rospy.init_node('detect_sign_node', anonymous=True)
 
-	    rospy.Subscriber("/raspicam_node/image/compressed", CompressedImage, detect_sign_callback, queue_size = 1, buff_size=2**24)        
+	    rospy.Subscriber("/raspicam_node/image/compressed", CompressedImage, get_latest_img_callback, queue_size = 1, buff_size=2**24)
 
 
-    def detect_sign_callback(self, img_data):
+    def get_latest_img_callback(self, img_data):
         '''
-        Call back function for the image subscriber which passes the input image through the trained CNN to generate a prediction for the detected sign
-        
-        Args: 
-            img_data: buffer image from standard ROS compressed image message
-        
-        Returns:
-            None
         '''
 
         single_img_batch = np.ndarray(shape = (1,224,224,3), dtype = np.float32)
@@ -60,7 +54,21 @@ class Detect_Sign:
 
         single_img_batch[0] = normalized_image_arr
 
-        prediction = self.cnn_model.predict(single_img_batch)
+        self.latest_img = single_img_batch[0]
+
+
+    def detect_sign(self):
+        '''
+        Call back function for the image subscriber which passes the input image through the trained CNN to generate a prediction for the detected sign
+        
+        Args: 
+            img_data: buffer image from standard ROS compressed image message
+        
+        Returns:
+            None
+        '''
+
+        prediction = self.cnn_model.predict(self.latest_img)
 
         prediction_idx = np.argmax(prediction)
 
