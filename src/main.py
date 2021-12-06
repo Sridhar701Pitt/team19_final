@@ -5,6 +5,9 @@ from move_robot import *
 from detect_sign import *
 import rospy
 
+from pynput.keyboard import Key, Listener
+
+
 def test_linear_motion():
 
     # Instantiate class move_robot
@@ -60,7 +63,7 @@ def test_classify():
         
         else:
             print("\n UN_IDENTIFIED")
-        
+
 
 if __name__ == '__main__':
 

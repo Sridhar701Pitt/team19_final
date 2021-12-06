@@ -29,7 +29,11 @@ class Detect_Sign:
         self.cnn_model = tensorflow.keras.models.load_model('keras_model.h5', compile=False)
         self.img_size = (224,224)
         self.detected_sign = None
-        self.latest_img = np.ndarray(shape = (1,224,224,3), dtype = np.float32)
+        # self.latest_img_for_CNN = np.ndarray(shape = (1,224,224,3), dtype = np.float32)
+        self.current_img = None
+
+        self.RasPi_img_save_path = "/home/yusuf/Desktop/CS7785/Final/raspi_cam_imgs/"
+        self.num_img_saved = 0
 
         # rospy.init_node('detect_sign_node', anonymous=True)
         
@@ -47,40 +51,10 @@ class Detect_Sign:
             None 
         '''
 
-        single_img_batch = np.ndarray(shape = (1,224,224,3), dtype = np.float32)
-
         img_np_arr = np.fromstring(img_data.data, np.uint8)
         cv_image = cv2.imdecode(img_np_arr, cv2.IMREAD_COLOR)
 
-        # h, w, c = cv_image.shape
-        # print("\n Image height: ", h, " Image width: ", w, " Image channels: ", c)
-
-        # PIL_image = Image.fromarray(np.uint8(img_np_arr)).convert('RGB')
-        cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
-        PIL_image = Image.fromarray(cv_image)
-
-        width, height = PIL_image.size
-
-        # print("\n Image width: ", width, " Image height: ", height)
-
-        # print(type(PIL_image))
-
-        # PIL_image.show()
-
-        img_cropped = ImageOps.fit(PIL_image, self.img_size, Image.ANTIALIAS)
-        width_cropped, height_cropped = img_cropped.size
-
-        # print("\n img cropped - width: ", width_cropped, " height: ", height_cropped)
-
-        img_cropped_array = np.asarray(img_cropped)
-
-        normalized_img_arr = (img_cropped_array.astype(np.float32) / 127.0) - 1
-
-        single_img_batch[0] = normalized_img_arr
-
-        self.latest_img = single_img_batch
-
-        # print("\n single img batch size: ", self.latest_img.shape)
+        self.current_img = cv_image
 
 
     def detect_sign(self):
@@ -93,7 +67,29 @@ class Detect_Sign:
             None
         '''
 
-        prediction = self.cnn_model.predict(self.latest_img)
+        cv_image = cv2.cvtColor(self.current_img, cv2.COLOR_BGR2RGB)
+        PIL_image = Image.fromarray(cv_image)
+
+        width, height = PIL_image.size
+
+        # print("\n Image width: ", width, " Image height: ", height)
+
+        img_cropped = ImageOps.fit(PIL_image, self.img_size, Image.ANTIALIAS)
+        width_cropped, height_cropped = img_cropped.size
+
+        # print("\n img cropped - width: ", width_cropped, " height: ", height_cropped)
+
+        img_cropped_array = np.asarray(img_cropped)
+
+        normalized_img_arr = (img_cropped_array.astype(np.float32) / 127.0) - 1
+
+        single_img_batch[0] = normalized_img_arr
+
+        latest_img_for_CNN = single_img_batch
+
+        # ---------------------------------------------------------------------------------------
+
+        prediction = self.cnn_model.predict(latest_img_for_CNN)
 
         prediction_idx = np.argmax(prediction)
 
@@ -113,4 +109,3 @@ class Detect_Sign:
             self.detected_sign = Sign.GOAL
 
         return self.detected_sign
-
