@@ -34,8 +34,8 @@ class move_robot:
         self.odom_angular = 0.0
         self.odom_orientation = Quaternion()
         self.odom_position = Point()
-        self.max_velocity = 0.22
-        self.max_angular = 2.84
+        self.max_velocity = 0.18
+        self.max_angular = 2.00
         self.angular_adjustment_error = 0.0005
         self.desired_angular_error = 0.06       # ang error threshold for the crude rotate_robot maneuver
         self.new_scan = False
@@ -175,10 +175,10 @@ class move_robot:
             # print("Distance right: " + str(distance_e) + " Distance left: " + str(distance_w))
             
             
-            p1_param = 1.5 # must be between 1 and 2
-            p2_param = 0.2
+            # p1_param = 1.5 # must be between 1 and 2
+            # p2_param = 0.2
             K_lin = 0.5
-            spd = np.max([np.min([K_lin, np.sqrt((self.odom_position.x-start_pos_x)**2 + (self.odom_position.y-start_pos_y)**2)]), 0.06]) * (distance_n - self.desired_distance)
+            spd = np.max([np.min([K_lin, np.sqrt((self.odom_position.x-start_pos_x)**2 + (self.odom_position.y-start_pos_y)**2)]), 0.03]) * (distance_n - self.desired_distance)
             command_vel.linear.x = np.clip(spd, -self.max_velocity, self.max_velocity)
             # command_vel.linear.x = np.clip(p1_param*(p2_param*(distance_n - self.desired_distance) - self.odom_linear) + self.odom_linear, -self.max_velocity, self.max_velocity)
             
@@ -213,7 +213,7 @@ class move_robot:
 
             self.move_publisher.publish(command_vel)
 
-            rospy.sleep(0.05)
+            rospy.sleep(0.03)
     
     def quadrant_split(self, quadrant):
         _, quad_array = self.quadrant_array(quadrant)
