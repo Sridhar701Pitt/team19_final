@@ -29,11 +29,12 @@ class Detect_Sign:
         self.cnn_model = tensorflow.keras.models.load_model('keras_model.h5', compile=False)
         self.img_size = (224,224)
         self.detected_sign = None
+
         # self.latest_img_for_CNN = np.ndarray(shape = (1,224,224,3), dtype = np.float32)
         self.current_img = None
 
-        self.RasPi_img_save_path = "/home/yusuf/Desktop/CS7785/Final/raspi_cam_imgs/"
-        self.num_img_saved = 0
+        self.latest_img = np.ndarray(shape = (1,224,224,3), dtype = np.float32)
+        self.writeidx = 0
 
         # rospy.init_node('detect_sign_node', anonymous=True)
         
@@ -54,6 +55,14 @@ class Detect_Sign:
         img_np_arr = np.fromstring(img_data.data, np.uint8)
         cv_image = cv2.imdecode(img_np_arr, cv2.IMREAD_COLOR)
 
+        # cv2.imshow("window",cv_image)
+
+        # if cv2.waitKey(5) != -1:
+        #     self.writeidx = self.writeidx + 1
+        #     filename = 'nosign/nosign_' + str(self.writeidx) + '.jpg'
+        #     cv2.imwrite(filename, cv_image)
+        #     print('image saved')
+
         self.current_img = cv_image
 
 
@@ -67,6 +76,11 @@ class Detect_Sign:
             None
         '''
 
+        # h, w, c = cv_image.shape
+        # print("\n Image height: ", h, " Image width: ", w, " Image channels: ", c)
+
+        single_img_batch = np.ndarray(shape = (1,224,224,3), dtype = np.float32)
+        
         cv_image = cv2.cvtColor(self.current_img, cv2.COLOR_BGR2RGB)
         PIL_image = Image.fromarray(cv_image)
 
