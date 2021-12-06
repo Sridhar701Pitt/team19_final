@@ -83,17 +83,17 @@ if __name__ == '__main__':
                 print('ROTATE ROBOT')
                 move_object.rotate_robot(sign_command)
                 
-                # if sign_command == Sign.RIGHT:
-                #     print('WEST PRECISE')
-                #     move_object.rotate_robot_precise(Quadrant.W)
+                if sign_command == Sign.RIGHT:
+                    print('WEST PRECISE')
+                    move_object.rotate_robot_precise(Quadrant.W)
                 
-                # elif sign_command == Sign.LEFT:
-                #     print('EAST PRECISE')
-                #     move_object.rotate_robot_precise(Quadrant.E)
+                elif sign_command == Sign.LEFT:
+                    print('EAST PRECISE')
+                    move_object.rotate_robot_precise(Quadrant.E)
                 
-                # else: #Sign.U-TURN
-                #     print('SOUTH PRECISE')
-                #     move_object.rotate_robot_precise(Quadrant.S)
+                else: #Sign.U-TURN
+                    print('SOUTH PRECISE')
+                    move_object.rotate_robot_precise(Quadrant.S)
 
             elif sign_command == Sign.GOAL:
                 move_object.stop_robot()
@@ -118,8 +118,8 @@ if __name__ == '__main__':
         else:
             print('GO FORWARD')
             move_object.move_robot_forward()
-            # print('NORTH PRECISE')
-            # move_object.rotate_robot_precise(Quadrant.N)
+            print('NORTH PRECISE')
+            move_object.rotate_robot_precise(Quadrant.N)
 
     # test_linear_motion()
 
