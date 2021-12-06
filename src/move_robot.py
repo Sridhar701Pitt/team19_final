@@ -3,7 +3,7 @@
 from os import kill
 import rospy
 import numpy as np
-from geometry_msgs.msg import Twist, Quaternion
+from geometry_msgs.msg import Twist, Quaternion, Point
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 from enums import *
@@ -33,10 +33,11 @@ class move_robot:
         self.odom_linear = 0.0
         self.odom_angular = 0.0
         self.odom_orientation = Quaternion()
-        self.max_velocity = 0.20
-        self.max_angular = 1.50
+        self.odom_position = Point()
+        self.max_velocity = 0.22
+        self.max_angular = 2.84
         self.angular_adjustment_error = 0.0005
-        self.desired_angular_error = 0.02       # ang error threshold for the crude rotate_robot maneuver
+        self.desired_angular_error = 0.06       # ang error threshold for the crude rotate_robot maneuver
         self.new_scan = False
         self.new_odom = False
 
@@ -92,9 +93,13 @@ class move_robot:
 
             #fix angle wrapping (angle must be between -pi to pi)
             yaw = (yaw + np.pi) % (2 * np.pi) - np.pi
-            print(yaw)
+            # print(yaw)
 
-            command_vel.angular.z = p_param * (k*(yaw_target - yaw) - self.odom_angular) + self.odom_angular
+            K_lin = 0.5
+            spd_ang = np.max([np.min([K_lin, (yaw - 0)]), 0.5]) * (yaw_target - yaw)
+            command_vel.angular.z = np.clip(spd_ang, -self.max_angular, self.max_angular)
+
+            # command_vel.angular.z = p_param * (k*(yaw_target - yaw) - self.odom_angular) + self.odom_angular
 
             if -1 * self.desired_angular_error <= (yaw_target - yaw) <= self.desired_angular_error:
                 command_vel.linear.x = 0
@@ -123,8 +128,8 @@ class move_robot:
 
             split_difference = self.quadrant_split(quadrant)
 
-            if -1 in quad_array or -2 in quad_array:
-                print("-1,-2's in array")
+            if -1 in quad_array:
+                # print("-1's in array")
                 continue
                 # raise Exception("invalid element '-1' in quad array")
 
@@ -149,6 +154,11 @@ class move_robot:
         Moves robot forward until desired distance is reached
 
         '''
+        while self.new_odom == False:
+            print('odom not updated')
+        
+        start_pos_x = self.odom_position.x
+        start_pos_y = self.odom_position.y
         
         while True:
             command_vel = Twist()
@@ -158,8 +168,8 @@ class move_robot:
             _, distance_w = self.is_facing_wall(Quadrant.W)
 
             # linear controller
-            if distance_n == -1 or distance_n == -2:
-                print('-1 or -2 in N array')
+            if distance_n == -1:
+                # print('-1 in N array')
                 distance_n = self.max_scan_distance
 
             # print("Distance right: " + str(distance_e) + " Distance left: " + str(distance_w))
@@ -167,34 +177,26 @@ class move_robot:
             
             p1_param = 1.5 # must be between 1 and 2
             p2_param = 0.2
-            command_vel.linear.x = np.clip(p1_param*(p2_param*(distance_n - self.desired_distance) - self.odom_linear) + self.odom_linear, -self.max_velocity, self.max_velocity)
+            K_lin = 0.5
+            spd = np.max([np.min([K_lin, np.sqrt((self.odom_position.x-start_pos_x)**2 + (self.odom_position.y-start_pos_y)**2)]), 0.06]) * (distance_n - self.desired_distance)
+            command_vel.linear.x = np.clip(spd, -self.max_velocity, self.max_velocity)
+            # command_vel.linear.x = np.clip(p1_param*(p2_param*(distance_n - self.desired_distance) - self.odom_linear) + self.odom_linear, -self.max_velocity, self.max_velocity)
             
             
             # angular adjustment controller
-            
-            # if distance_w != -1:
-            #     p_param_w = 1.5
-            #     command_vel.angular.z = p_param_w*((distance_w - self.desired_distance) - self.odom_angular) + self.odom_angular
-            #     print("Distance left: " + str(distance_w) + " Angular Z: " + str(command_vel.angular.z))
-            # elif distance_e != -1:
-            #     p_param_e = 1.5
-            #     command_vel.angular.z = p_param_e*((self.desired_distance - distance_e) - self.odom_angular) + self.odom_angular
-            #     print("Distance right: " + str(distance_e) + " Angular Z: " + str(command_vel.angular.z))
-            # else:
-            #     command_vel.angular.z = 0
 
-            if distance_w != -1 or distance_w != -2:
+            if distance_w != -1:
                 split_difference_w = self.quadrant_split(Quadrant.W)
                 p_param_w = 1.5
                 k = 6
                 command_vel.angular.z = np.clip(p_param_w*(k*(split_difference_w) - self.odom_angular) + self.odom_angular, - self.max_angular, self.max_angular)
-                print("split left: " + str(split_difference_w) + " Angular Z: " + str(command_vel.angular.z))
-            elif distance_e != -1 or distance_e != -2:
+                # print("split left: " + str(split_difference_w) + " Angular Z: " + str(command_vel.angular.z))
+            elif distance_e != -1:
                 split_difference_e = self.quadrant_split(Quadrant.E)
                 p_param_e = 1.5
                 k = 6
                 command_vel.angular.z = np.clip(p_param_e*(k*(split_difference_e) - self.odom_angular) + self.odom_angular, -self.max_angular, self.max_angular)
-                print("split right: " + str(split_difference_e) + " Angular Z: " + str(command_vel.angular.z))
+                # print("split right: " + str(split_difference_e) + " Angular Z: " + str(command_vel.angular.z))
             else:
                 command_vel.angular.z = 0
             
@@ -207,7 +209,7 @@ class move_robot:
                 self.move_publisher.publish(command_vel)
                 break
             # print('lin: ' + str(command_vel.linear.x) + ' Ang: ' + str(command_vel.angular.z))
-            print("Distance error: " + str(distance_n - self.desired_distance) + ' cmd_vel: ' + str(command_vel.linear.x) )
+            # print("Distance error: " + str(distance_n - self.desired_distance) + ' cmd_vel: ' + str(command_vel.linear.x) )
 
             self.move_publisher.publish(command_vel)
 
@@ -223,6 +225,7 @@ class move_robot:
         self.odom_linear = odom_object.twist.twist.linear.x
         self.odom_angular = odom_object.twist.twist.angular.z
         self.odom_orientation = odom_object.pose.pose.orientation
+        self.odom_position = odom_object.pose.pose.position
 
         self.new_odom = True
 
@@ -243,8 +246,6 @@ class move_robot:
         # print(quad_array)
         if -1 in quad_array:
             return False, -1
-        elif -2 in quad_array:
-            return False, -2
         else:
             scan_distance = np.average(quad_array)
             if self.desired_distance - self.desired_distance_error <= scan_distance <= self.desired_distance + self.desired_distance_error:
@@ -260,7 +261,7 @@ class move_robot:
         self.scan_array = np.asarray(laser_scan_object.ranges)
         # make laser scan points outside range = -1
 
-        self.scan_array = np.where(self.scan_array < range_min, -2, self.scan_array)
+        self.scan_array = np.where(self.scan_array < range_min, -1, self.scan_array)
         
         self.scan_array = np.where(self.scan_array > range_max, -1, self.scan_array)
 

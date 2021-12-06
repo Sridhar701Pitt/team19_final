@@ -27,6 +27,7 @@ class Detect_Sign:
         '''
 
         self.cnn_model = tensorflow.keras.models.load_model('keras_model.h5', compile=False)
+        self.cnn_model_left_right = tensorflow.keras.models.load_model('keras_model_left_right.h5', compile=False)
         self.img_size = (224,224)
         self.detected_sign = None
 
@@ -79,6 +80,9 @@ class Detect_Sign:
         # h, w, c = cv_image.shape
         # print("\n Image height: ", h, " Image width: ", w, " Image channels: ", c)
 
+        while self.current_img is None:
+            rospy.sleep(0.1)
+
         single_img_batch = np.ndarray(shape = (1,224,224,3), dtype = np.float32)
         
         cv_image = cv2.cvtColor(self.current_img, cv2.COLOR_BGR2RGB)
@@ -109,17 +113,29 @@ class Detect_Sign:
 
         if prediction_idx == 0:
             self.detected_sign = Sign.NO_SIGN
+            print('-> SIGN NOT DETECTED')
         
-        elif prediction_idx == 1:
-            self.detected_sign = Sign.LEFT
-        
-        elif prediction_idx == 2:
-            self.detected_sign = Sign.RIGHT
+        elif prediction_idx == 1 or prediction_idx == 2:
+            # self.detected_sign = Sign.LEFT
+            # self.detected_sign = Sign.RIGHT
+
+            prediction_drxn = self.cnn_model_left_right.predict(latest_img_for_CNN)
+            prediction_drxn_idx = np.argmax(prediction_drxn)
+
+            if prediction_drxn_idx == 0:
+                self.detected_sign = Sign.LEFT
+                print('-> TURN LEFT')
+            
+            elif prediction_drxn_idx == 1:
+                self.detected_sign = Sign.RIGHT
+                print('-> TURN RIGHT')
         
         elif prediction_idx == 3 or prediction_idx == 4:
             self.detected_sign = Sign.U_TURN
+            print('-> U-TURN')
         
         else:
             self.detected_sign = Sign.GOAL
+            print('-> GOAL REACHED')
 
         return self.detected_sign
