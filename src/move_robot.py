@@ -40,6 +40,17 @@ class move_robot:
         self.new_scan = False
         self.new_odom = False
 
+    def move_robot_back(self):
+        command_vel = Twist()
+        command_vel.linear.x = -0.04
+        self.move_publisher.publish(command_vel)
+        rospy.sleep(0.4)
+    
+    def stop_robot(self):
+        command_vel = Twist()
+        self.move_publisher.publish(command_vel)
+        rospy.sleep(0.1)
+
     def rotate_robot(self, direction):
         # TODO
 
@@ -112,8 +123,8 @@ class move_robot:
 
             split_difference = self.quadrant_split(quadrant)
 
-            if -1 in quad_array:
-                print("-1's in array")
+            if -1 in quad_array or -2 in quad_array:
+                print("-1,-2's in array")
                 continue
                 # raise Exception("invalid element '-1' in quad array")
 
@@ -147,8 +158,8 @@ class move_robot:
             _, distance_w = self.is_facing_wall(Quadrant.W)
 
             # linear controller
-            if distance_n == -1:
-                print('-1 in N array')
+            if distance_n == -1 or distance_n == -2:
+                print('-1 or -2 in N array')
                 distance_n = self.max_scan_distance
 
             # print("Distance right: " + str(distance_e) + " Distance left: " + str(distance_w))
@@ -172,13 +183,13 @@ class move_robot:
             # else:
             #     command_vel.angular.z = 0
 
-            if distance_w != -1:
+            if distance_w != -1 or distance_w != -2:
                 split_difference_w = self.quadrant_split(Quadrant.W)
                 p_param_w = 1.5
                 k = 6
                 command_vel.angular.z = np.clip(p_param_w*(k*(split_difference_w) - self.odom_angular) + self.odom_angular, - self.max_angular, self.max_angular)
                 print("split left: " + str(split_difference_w) + " Angular Z: " + str(command_vel.angular.z))
-            elif distance_e != -1:
+            elif distance_e != -1 or distance_e != -2:
                 split_difference_e = self.quadrant_split(Quadrant.E)
                 p_param_e = 1.5
                 k = 6
@@ -232,6 +243,8 @@ class move_robot:
         # print(quad_array)
         if -1 in quad_array:
             return False, -1
+        elif -2 in quad_array:
+            return False, -2
         else:
             scan_distance = np.average(quad_array)
             if self.desired_distance - self.desired_distance_error <= scan_distance <= self.desired_distance + self.desired_distance_error:
@@ -246,9 +259,12 @@ class move_robot:
         # convert to numpy array
         self.scan_array = np.asarray(laser_scan_object.ranges)
         # make laser scan points outside range = -1
+
+        self.scan_array = np.where(self.scan_array < range_min, -2, self.scan_array)
+        
         self.scan_array = np.where(self.scan_array > range_max, -1, self.scan_array)
 
-        self.scan_array = np.where(self.scan_array < range_min, -1, self.scan_array)
+        
 
         # print("\n received scan: ", self.scan_array)
 

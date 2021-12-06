@@ -30,6 +30,7 @@ class Detect_Sign:
         self.img_size = (224,224)
         self.detected_sign = None
         self.latest_img = np.ndarray(shape = (1,224,224,3), dtype = np.float32)
+        self.writeidx = 0
 
         # rospy.init_node('detect_sign_node', anonymous=True)
         
@@ -51,6 +52,14 @@ class Detect_Sign:
 
         img_np_arr = np.fromstring(img_data.data, np.uint8)
         cv_image = cv2.imdecode(img_np_arr, cv2.IMREAD_COLOR)
+
+        cv2.imshow("window",cv_image)
+
+        if cv2.waitKey(5) != -1:
+            self.writeidx = self.writeidx + 1
+            filename = 'nosign/nosign_' + str(self.writeidx) + '.jpg'
+            cv2.imwrite(filename, cv_image)
+            print('image saved')
 
         # h, w, c = cv_image.shape
         # print("\n Image height: ", h, " Image width: ", w, " Image channels: ", c)
