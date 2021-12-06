@@ -1,0 +1,6 @@
+0 Random
+1 Left
+2 Right
+3 uTurn
+4 STOP
+5 StarGoal

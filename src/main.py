@@ -3,7 +3,7 @@
 from enums import *
 from move_robot import *
 from detect_sign import *
-
+import rospy
 
 def test_linear_motion():
 
@@ -12,12 +12,16 @@ def test_linear_motion():
 
     move_object.move_robot_forward()
 
+    print("success linear")
+
 def test_rotate_robot_precise():
 
     # Instantiate class move_robot
     move_object = move_robot()
     
     move_object.rotate_robot_precise(Quadrant.N)    # Quadrant.N for testing rotate_robot_precise just after linear motion is performed
+
+    print('success precise')
 
 def test_rotate_robot():
 
@@ -26,6 +30,37 @@ def test_rotate_robot():
     
     move_object.rotate_robot(Sign.U_TURN)
 
+    print('success rotate')
+
+def test_classify():
+    # Instantiate class move_robot
+    move_object = move_robot()
+
+    # Instantiate class move_robot
+    detect_sign_object = Detect_Sign()
+
+    while True:
+
+        sign_command = detect_sign_object.detect_sign()
+
+        if sign_command == Sign.GOAL:
+            print("\n GOAL")
+
+        elif sign_command == Sign.LEFT:
+            print("\n LEFT")
+        
+        elif sign_command == Sign.RIGHT:
+            print("\n RIGHT")
+        
+        elif sign_command == Sign.NO_SIGN:
+            print("\n NO_SIGN")
+        
+        elif sign_command == Sign.U_TURN:
+            print("\n U_TURN")
+        
+        else:
+            print("\n UN_IDENTIFIED")
+        
 
 if __name__ == '__main__':
 
@@ -59,6 +94,7 @@ if __name__ == '__main__':
             elif sign_command == Sign.GOAL:
                 rospy.loginfo('Goal Reached')
                 print('Goal Reached')
+                print("Yoyo gogogo HAHAHAH!!!!")
                 break
             
             else: # Sign.NO_SIGN
@@ -74,5 +110,11 @@ if __name__ == '__main__':
     # test_linear_motion()
 
     # test_rotate_robot_precise()
-
+ 
     # test_rotate_robot()
+
+    # test_classify()
+
+    rospy.sleep(3)
+
+    # rostopic pub -r 10 /cmd_vel geometry_msgs/Twist  '{linear:  {x: 0.0, y: 0.0, z: 0.0}, angular: {x: 0.0,y: 0.0,z: 0.0}}'

@@ -33,7 +33,7 @@ class Detect_Sign:
 
         # rospy.init_node('detect_sign_node', anonymous=True)
         
-        rospy.Subscriber("/raspicam_node/image/compressed", CompressedImage, self.get_latest_img_callback, queue_size = 1, buff_size=2**24)
+        self.camera_sub = rospy.Subscriber("/raspicam_node/image/compressed", CompressedImage, self.get_latest_img_callback, queue_size = 1, buff_size=2**24)
 
 
     def get_latest_img_callback(self, img_data):
@@ -50,13 +50,27 @@ class Detect_Sign:
         single_img_batch = np.ndarray(shape = (1,224,224,3), dtype = np.float32)
 
         img_np_arr = np.fromstring(img_data.data, np.uint8)
-        PIL_image = Image.fromarray(np.uint8(img_np_arr)).convert('RGB')
+        cv_image = cv2.imdecode(img_np_arr, cv2.IMREAD_COLOR)
 
-        print(type(PIL_image))
+        # h, w, c = cv_image.shape
+        # print("\n Image height: ", h, " Image width: ", w, " Image channels: ", c)
+
+        # PIL_image = Image.fromarray(np.uint8(img_np_arr)).convert('RGB')
+        cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
+        PIL_image = Image.fromarray(cv_image)
+
+        width, height = PIL_image.size
+
+        # print("\n Image width: ", width, " Image height: ", height)
+
+        # print(type(PIL_image))
+
+        # PIL_image.show()
 
         img_cropped = ImageOps.fit(PIL_image, self.img_size, Image.ANTIALIAS)
+        width_cropped, height_cropped = img_cropped.size
 
-        print("\n img cropped:", type(img_cropped))
+        # print("\n img cropped - width: ", width_cropped, " height: ", height_cropped)
 
         img_cropped_array = np.asarray(img_cropped)
 
@@ -64,7 +78,9 @@ class Detect_Sign:
 
         single_img_batch[0] = normalized_img_arr
 
-        self.latest_img = single_img_batch[0]
+        self.latest_img = single_img_batch
+
+        # print("\n single img batch size: ", self.latest_img.shape)
 
 
     def detect_sign(self):

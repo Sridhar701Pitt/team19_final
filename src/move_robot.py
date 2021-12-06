@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from os import kill
 import rospy
 import numpy as np
 from geometry_msgs.msg import Twist, Quaternion
@@ -24,16 +25,16 @@ class move_robot:
         self.move_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size = 1)
         self.odom_sub = rospy.Subscriber('/odom', Odometry, self.odom_callback, queue_size = 10)
         self.lidar_scan = rospy.Subscriber('/scan', LaserScan, self.laser_subscriber, queue_size = 10)
-        self.max_scan_distance = 0.8
+        self.max_scan_distance = 1.2
         self.scan_array = np.empty((1, 360))
-        self.fov = 30
-        self.desired_distance = 0.3
-        self.desired_distance_error = 0.01
+        self.fov = 16
+        self.desired_distance = 0.5
+        self.desired_distance_error = 0.05
         self.odom_linear = 0.0
         self.odom_angular = 0.0
         self.odom_orientation = Quaternion()
-        self.max_velocity = 0.22
-        self.max_angular = 2.84
+        self.max_velocity = 0.20
+        self.max_angular = 1.50
         self.angular_adjustment_error = 0.0005
         self.desired_angular_error = 0.02       # ang error threshold for the crude rotate_robot maneuver
         self.new_scan = False
@@ -43,6 +44,7 @@ class move_robot:
         # TODO
 
         p_param = 1.5
+        k = 0.5
 
         while self.new_odom == False:
             print('odom not updated')
@@ -81,7 +83,7 @@ class move_robot:
             yaw = (yaw + np.pi) % (2 * np.pi) - np.pi
             print(yaw)
 
-            command_vel.angular.z = p_param * ((yaw_target - yaw) - self.odom_angular) + self.odom_angular
+            command_vel.angular.z = p_param * (k*(yaw_target - yaw) - self.odom_angular) + self.odom_angular
 
             if -1 * self.desired_angular_error <= (yaw_target - yaw) <= self.desired_angular_error:
                 command_vel.linear.x = 0
@@ -90,6 +92,8 @@ class move_robot:
                 break
             
             self.move_publisher.publish(command_vel)
+
+            rospy.sleep(0.05)
 
 
     def rotate_robot_precise(self, quadrant):
@@ -109,7 +113,9 @@ class move_robot:
             split_difference = self.quadrant_split(quadrant)
 
             if -1 in quad_array:
-                raise Exception("invalid element '-1' in quad array")
+                print("-1's in array")
+                continue
+                # raise Exception("invalid element '-1' in quad array")
 
             if - self.angular_adjustment_error < split_difference < self.angular_adjustment_error:
                 command_vel.angular.z = 0
@@ -125,6 +131,8 @@ class move_robot:
 
             self.move_publisher.publish(command_vel)
 
+            rospy.sleep(0.05)
+
     def move_robot_forward(self):
         '''
         Moves robot forward until desired distance is reached
@@ -132,64 +140,67 @@ class move_robot:
         '''
         
         while True:
-            if True: #self.new_scan == True:
-                self.new_scan = False
+            command_vel = Twist()
 
-                command_vel = Twist()
+            _, distance_n = self.is_facing_wall(Quadrant.N)
+            _, distance_e = self.is_facing_wall(Quadrant.E)
+            _, distance_w = self.is_facing_wall(Quadrant.W)
 
-                _, distance_n = self.is_facing_wall(Quadrant.N)
-                _, distance_e = self.is_facing_wall(Quadrant.E)
-                _, distance_w = self.is_facing_wall(Quadrant.W)
+            # linear controller
+            if distance_n == -1:
+                print('-1 in N array')
+                distance_n = self.max_scan_distance
 
-                # linear controller
-                if distance_n == -1:
-                    distance_n = self.max_scan_distance
+            # print("Distance right: " + str(distance_e) + " Distance left: " + str(distance_w))
+            
+            
+            p1_param = 1.5 # must be between 1 and 2
+            p2_param = 0.2
+            command_vel.linear.x = np.clip(p1_param*(p2_param*(distance_n - self.desired_distance) - self.odom_linear) + self.odom_linear, -self.max_velocity, self.max_velocity)
+            
+            
+            # angular adjustment controller
+            
+            # if distance_w != -1:
+            #     p_param_w = 1.5
+            #     command_vel.angular.z = p_param_w*((distance_w - self.desired_distance) - self.odom_angular) + self.odom_angular
+            #     print("Distance left: " + str(distance_w) + " Angular Z: " + str(command_vel.angular.z))
+            # elif distance_e != -1:
+            #     p_param_e = 1.5
+            #     command_vel.angular.z = p_param_e*((self.desired_distance - distance_e) - self.odom_angular) + self.odom_angular
+            #     print("Distance right: " + str(distance_e) + " Angular Z: " + str(command_vel.angular.z))
+            # else:
+            #     command_vel.angular.z = 0
 
-                # print("Distance right: " + str(distance_e) + " Distance left: " + str(distance_w))
-                
-                p1_param = 1.5 # must be between 1 and 2
-                p2_param = 0.2
-                command_vel.linear.x = np.clip(p1_param*(p2_param*(distance_n - self.desired_distance) - self.odom_linear) + self.odom_linear, -self.max_velocity, self.max_velocity)
-                
-                # angular adjustment controller
-                
-                # if distance_w != -1:
-                #     p_param_w = 1.5
-                #     command_vel.angular.z = p_param_w*((distance_w - self.desired_distance) - self.odom_angular) + self.odom_angular
-                #     print("Distance left: " + str(distance_w) + " Angular Z: " + str(command_vel.angular.z))
-                # elif distance_e != -1:
-                #     p_param_e = 1.5
-                #     command_vel.angular.z = p_param_e*((self.desired_distance - distance_e) - self.odom_angular) + self.odom_angular
-                #     print("Distance right: " + str(distance_e) + " Angular Z: " + str(command_vel.angular.z))
-                # else:
-                #     command_vel.angular.z = 0
+            if distance_w != -1:
+                split_difference_w = self.quadrant_split(Quadrant.W)
+                p_param_w = 1.5
+                k = 6
+                command_vel.angular.z = np.clip(p_param_w*(k*(split_difference_w) - self.odom_angular) + self.odom_angular, - self.max_angular, self.max_angular)
+                print("split left: " + str(split_difference_w) + " Angular Z: " + str(command_vel.angular.z))
+            elif distance_e != -1:
+                split_difference_e = self.quadrant_split(Quadrant.E)
+                p_param_e = 1.5
+                k = 6
+                command_vel.angular.z = np.clip(p_param_e*(k*(split_difference_e) - self.odom_angular) + self.odom_angular, -self.max_angular, self.max_angular)
+                print("split right: " + str(split_difference_e) + " Angular Z: " + str(command_vel.angular.z))
+            else:
+                command_vel.angular.z = 0
+            
+            
 
-                if distance_w != -1:
-                    split_difference_w = self.quadrant_split(Quadrant.W)
-                    p_param_w = 1.5
-                    k = 6
-                    command_vel.angular.z = np.clip(p_param_w*(k*(split_difference_w) - self.odom_angular) + self.odom_angular, - self.max_angular, self.max_angular)
-                    print("split left: " + str(split_difference_w) + " Angular Z: " + str(command_vel.angular.z))
-                elif distance_e != -1:
-                    split_difference_e = self.quadrant_split(Quadrant.E)
-                    p_param_e = 1.5
-                    k = 6
-                    command_vel.angular.z = np.clip(p_param_e*(k*(split_difference_e) - self.odom_angular) + self.odom_angular, -self.max_angular, self.max_angular)
-                    print("split right: " + str(split_difference_e) + " Angular Z: " + str(command_vel.angular.z))
-                else:
-                    command_vel.angular.z = 0
-                
-                
-
-                # stop if in range
-                if self.desired_distance - self.desired_distance_error <= distance_n <= self.desired_distance + self.desired_distance_error:
-                    command_vel.linear.x = 0
-                    command_vel.angular.z = 0
-                    self.move_publisher.publish(command_vel)
-                    break
-                # print('lin: ' + str(command_vel.linear.x) + ' Ang: ' + str(command_vel.angular.z))
-
+            # stop if in range
+            if self.desired_distance - self.desired_distance_error <= distance_n <= self.desired_distance + self.desired_distance_error:
+                command_vel.linear.x = 0
+                command_vel.angular.z = 0
                 self.move_publisher.publish(command_vel)
+                break
+            # print('lin: ' + str(command_vel.linear.x) + ' Ang: ' + str(command_vel.angular.z))
+            print("Distance error: " + str(distance_n - self.desired_distance) + ' cmd_vel: ' + str(command_vel.linear.x) )
+
+            self.move_publisher.publish(command_vel)
+
+            rospy.sleep(0.05)
     
     def quadrant_split(self, quadrant):
         _, quad_array = self.quadrant_array(quadrant)
